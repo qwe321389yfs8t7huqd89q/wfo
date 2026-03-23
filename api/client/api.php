@@ -839,10 +839,24 @@ class API
             $stmt->execute();
             $day_found = $stmt->fetchColumn();
 
+            try {
+                $parking_spot = $this->get_booked_parking_spot($day_found, $token_data['user_id']);
+            } catch (\Throwable $th) {
+                $parking_spot = null;
+            }
+
+            try {
+                $seat = $this->get_booked_seats($day_found, $token_data['user_id']);
+            } catch (\Throwable $th) {
+                $seat = null;
+            }
+
             if ($day_found) {
                 return [
                     "status" => "office",
-                    "date" => $day_found
+                    "date" => $day_found,
+                    "parking_spot" => $parking_spot ? $parking_spot['name'] : "No parking spot booked",
+                    "seat" => $seat ? $seat['name'] : "No seat booked"
                 ];
             }
         }
@@ -1098,22 +1112,22 @@ class API
         }
     }
 
-    public function get_booked_seats($reservation_date)
+    public function get_booked_seats($reservation_date, $user_id = null)
     {
         $query = "SELECT s1.*, us1.user_id FROM user_seats us1 JOIN seats s1 ON us1.seat_id = s1.id JOIN maps m1 ON s1.map_id = m1.id WHERE us1.reservation_date = :reservation_date AND m1.user_id = :user_id AND m1.type = 'office'";
         $stmt = $this->db->dbh->prepare($query);
         $stmt->bindValue(':reservation_date', $reservation_date, \PDO::PARAM_STR);
-        $stmt->bindValue(':user_id', $this->get_user_id(), \PDO::PARAM_INT);
+        $stmt->bindValue(':user_id', is_null($user_id) ? $this->get_user_id() : $user_id, \PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
 
-    public function get_booked_parking_spot($reservation_date)
+    public function get_booked_parking_spot($reservation_date, $user_id = null)
     {
         $query = "SELECT s1.*, us1.user_id FROM user_seats us1 JOIN seats s1 ON us1.seat_id = s1.id JOIN maps m1 ON s1.map_id = m1.id WHERE us1.reservation_date = :reservation_date AND m1.user_id = :user_id AND m1.type = 'parking'";
         $stmt = $this->db->dbh->prepare($query);
         $stmt->bindValue(':reservation_date', $reservation_date, \PDO::PARAM_STR);
-        $stmt->bindValue(':user_id', $this->get_user_id(), \PDO::PARAM_INT);
+        $stmt->bindValue(':user_id', is_null($user_id) ? $this->get_user_id() : $user_id, \PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
