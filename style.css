@@ -16,6 +16,16 @@
   }
 }
 
+.hide-on-desktop {
+  visibility: hidden !important;
+}
+
+@media only screen and (max-width: 768px) {
+  .hide-on-desktop {
+    visibility: visible !important;
+  }
+}
+
 .fc-event {
   cursor: pointer;
 }
@@ -45,6 +55,7 @@
 .navigation-menu-item.odd {
   background-color: #e3e3e3;
 }
+
 .navigation-menu-item.even {
   background-color: #dddddd;
 }
@@ -55,4 +66,14 @@
 
 .navigation-menu .offcanvas-body {
   padding: 0;
+}
+
+.fc .fc-day-today .fc-list-day-cushion {
+  background-color: #fffadf !important;
+}
+
+.spacer {
+  height: 250px;
+  min-height: 250px;
+  visibility: hidden !important;
 }

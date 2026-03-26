@@ -400,9 +400,8 @@ async function show_map_today(type = 'office') {
     const today_el = document.getElementById("today-seat");
     const map_id = today_el.dataset[`${type}_map_id`];
     const seat = today_el.dataset[`${type}_seat`];
-    console.log(`map_id: ${map_id}, seat: ${seat}`);
     if (seat == undefined || map_id == undefined) {
-        alert("No map available for today.");
+        window.open(`map.html?id=${map_id}`, '_blank');
     } else {
         window.open(`map.html?id=${map_id}&seat_id=${seat}`, '_blank');
     }
@@ -411,30 +410,56 @@ async function show_map_today(type = 'office') {
 async function get_map_today() {
     const today = new Date();
     const today_el = document.getElementById("today-seat");
+    const default_maps = { "parking": null, "office": null };
+    try {
+        const maps = await get_maps();
+        maps.forEach(map => {
+            if (map.type == 'office') {
+                default_maps.office = map.id;
+            }
+            if (map.type == 'parking') {
+                default_maps.parking = map.id;
+            }
+        });
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
     try {
         const response = await axios.get(`api/seat/booked?date=${today.toISOString().split('T')[0]}`);
         results = response.data.data;
-        const response2 = await axios.get(`api/spot/booked?date=${today.toISOString().split('T')[0]}`);
-        results2 = response2.data.data;
 
         if (results.result) {
             const map_id = results.result.map_id;
             const seat = results.result.id;
             today_el.dataset.office_map_id = map_id;
             today_el.dataset.office_seat = seat;
+        } else {
+            today_el.dataset.office_map_id = default_maps.office;
+            delete today_el.dataset.office_seat;
+        }
+    } catch (error) {
+        delete today_el.dataset.office_map_id;
+        delete today_el.dataset.office_seat;
+        console.error(`Error getting seats for map ${map_id}:`, error);
+        return null;
+    }
+    try {
+        const response2 = await axios.get(`api/spot/booked?date=${today.toISOString().split('T')[0]}`);
+        results2 = response2.data.data;
+
+        if (results2.result) {
             const map_id2 = results2.result.map_id;
             const seat2 = results2.result.id;
             today_el.dataset.parking_map_id = map_id2;
             today_el.dataset.parking_seat = seat2;
         } else {
-            delete today_el.dataset.office_map_id;
-            delete today_el.dataset.office_seat;
-            delete today_el.dataset.parking_map_id;
+            today_el.dataset.parking_map_id = default_maps.parking;
             delete today_el.dataset.parking_seat;
         }
     } catch (error) {
-        delete today_el.dataset.map_id;
-        delete today_el.dataset.seat;
+        delete today_el.dataset.parking_map_id;
+        delete today_el.dataset.parking_seat;
         console.error(`Error getting seats for map ${map_id}:`, error);
         return null;
     }
@@ -525,6 +550,7 @@ async function delete_booking(day, map_id) {
     }).then(response => {
         Modal.toggle();
         calendar.refetchEvents();
+        get_map_today();
     }).catch(error => {
         logError('There was an error when deleting a seat booking:', error);
     });
