@@ -315,7 +315,7 @@ class API
                 "end" => $dt->format("Y-m-d"),
                 "color" => "#82cdff",
                 "cursor" => "pointer",
-                "id" => 12
+                "id" => 14
             ];
         }
         return [
@@ -325,7 +325,7 @@ class API
             "color" => $_ENV['add_holiday_color'],
             "textColor" => $_ENV['add_holiday_text_color'],
             "cursor" => "pointer",
-            "id" => 11
+            "id" => 13
         ];
     }
 
@@ -1135,15 +1135,17 @@ class API
 
     public function get_recent_seats($map_type = null)
     {
-        $query = "SELECT DISTINCT s1.name FROM seats s1 JOIN user_seats us1 ON s1.id = us1.seat_id JOIN maps m1 ON s1.map_id = m1.id WHERE us1.user_id = :user_id ";
+        $query = "SELECT s1.name FROM seats s1 JOIN user_seats us1 ON s1.id = us1.seat_id JOIN maps m1 ON s1.map_id = m1.id WHERE us1.user_id = :user_id ";
         if (!is_null($map_type)) {
             $query .= " AND m1.type = :map_type ";
         }
-        $query .= " limit 10";
+        $query .= " GROUP BY s1.id, s1.name ORDER BY COUNT(us1.seat_id) DESC limit 10";
         $stmt = $this->db->dbh->prepare($query);
         $stmt->bindValue(':user_id', $this->get_user_id(), \PDO::PARAM_INT);
         if (!is_null($map_type)) {
             $stmt->bindValue(':map_type', $map_type, \PDO::PARAM_STR);
+        } else {
+            throw new \Exception("Map type is required!", 1);
         }
         $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
